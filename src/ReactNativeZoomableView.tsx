@@ -1,6 +1,7 @@
 import React, { Component, createRef, RefObject } from 'react';
 import {
   Animated,
+  Dimensions,
   GestureResponderEvent,
   InteractionManager,
   PanResponder,
@@ -597,37 +598,19 @@ class ReactNativeZoomableView extends Component<
     // Uncomment to debug
     this.props.debug && this._setPinchDebugPoints(e, zoomCenter);
 
-    const { originalHeight, originalWidth } = this.state;
-
-    const oldOffsetX = this.offsetX;
-    const oldOffsetY = this.offsetY;
     const oldScale = this.zoomLevel;
     const newScale = newZoomLevel;
 
-    let offsetY = calcNewScaledOffsetForZoomCentering(
-      oldOffsetY,
-      originalHeight,
-      oldScale,
-      newScale,
-      zoomCenter.y
-    );
-    let offsetX = calcNewScaledOffsetForZoomCentering(
-      oldOffsetX,
-      originalWidth,
-      oldScale,
-      newScale,
-      zoomCenter.x
+    const offsetShift = this._calcOffsetZoomSinceLastGestureState(
+      gestureCenterPoint,
+      { old: newScale, new: oldScale }
     );
 
-    const offsetShift =
-      this._calcOffsetShiftSinceLastGestureState(gestureCenterPoint);
     if (offsetShift) {
-      offsetX += offsetShift.x;
-      offsetY += offsetShift.y;
+      this.offsetX += offsetShift.x;
+      this.offsetY += offsetShift.y;
     }
 
-    this.offsetX = offsetX;
-    this.offsetY = offsetY;
     this.zoomLevel = newScale;
 
     this.panAnim.setValue({ x: this.offsetX, y: this.offsetY });
@@ -695,6 +678,33 @@ class ReactNativeZoomableView extends Component<
     }
 
     this.lastGestureCenterPosition = gestureCenterPoint;
+
+    return shift;
+  }
+
+  /**
+   * Calculates the amount the offset should shift since the last position during pinching
+   *
+   * @param {Vec2D} gestureCenterPoint
+   * @param {Vec2D} zoomLevel
+   *
+   * @private
+   */
+
+  _calcOffsetZoomSinceLastGestureState(gestureCenterPoint: Vec2D, zoomLevel: ZoomLevel) {
+    const screenWidth = Dimensions.get('window').width
+    const screenHeight = Dimensions.get('window').height
+
+    const pinchPointX = (screenWidth / 2) - gestureCenterPoint.x
+    const pinchPointY = (screenHeight / 2) - gestureCenterPoint.y
+
+    const shiftX = (pinchPointX / zoomLevel.new) - (pinchPointX / zoomLevel.old)
+    const shiftY = (pinchPointY / zoomLevel.new) - (pinchPointY / zoomLevel.old)
+
+    const shift = {
+      x: isNaN(shiftX) ? 0 : shiftX,
+      y: isNaN(shiftY) ? 0 : shiftY,
+    };
 
     return shift;
   }
