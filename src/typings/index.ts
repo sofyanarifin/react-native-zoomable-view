@@ -138,6 +138,11 @@ export interface Vec2D {
   y: number;
 }
 
+export interface ZoomLevel {
+  old: number;
+  new: number;
+}
+
 export interface TouchPoint extends Vec2D {
   id: string;
   isSecondTap?: boolean;
